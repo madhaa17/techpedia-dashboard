@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { authAdminOnly } from "@/lib/middleware";
 import { Role } from "@prisma/client";
 
-export async function POST(req: Request): Promise<NextResponse> {
+export async function POST(req: Request | NextRequest): Promise<NextResponse> {
   try {
     // Verify that request is from an admin
     const isAdmin = await authAdminOnly(req);
@@ -87,7 +87,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 }
 
 // Get all admins (admin only)
-export async function GET(req: Request): Promise<NextResponse> {
+export async function GET(req: Request | NextRequest): Promise<NextResponse> {
   try {
     // Verify that request is from an admin
     const isAdmin = await authAdminOnly(req);
