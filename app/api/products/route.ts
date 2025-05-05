@@ -53,7 +53,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 }
 
-export async function createProduct(req: Request): Promise<NextResponse> {
+export async function POST(req: Request): Promise<NextResponse> {
   try {
     // Check admin authorization
     const isAdmin = await authAdminOnly(req);
@@ -146,71 +146,6 @@ export async function createProduct(req: Request): Promise<NextResponse> {
     console.error("Error creating product:", error);
     return NextResponse.json(
       { error: "Failed to create product" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-): Promise<NextResponse> {
-  try {
-    // Check admin authorization
-    const isAdmin = await authAdminOnly(req);
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 }
-      );
-    }
-
-    if (!params?.id) {
-      return NextResponse.json(
-        { error: "Product ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Check if product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: params.id },
-    });
-
-    if (!existingProduct) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-
-    // Check if product has related records
-    const hasOrderItems = await prisma.orderItem.findFirst({
-      where: { productId: params.id },
-    });
-
-    if (hasOrderItems) {
-      return NextResponse.json(
-        { error: "Cannot delete product with existing orders" },
-        { status: 400 }
-      );
-    }
-
-    // First delete related reviews and cart items
-    await prisma.$transaction([
-      prisma.productReview.deleteMany({
-        where: { productId: params.id },
-      }),
-      prisma.cartItem.deleteMany({
-        where: { productId: params.id },
-      }),
-      prisma.product.delete({
-        where: { id: params.id },
-      }),
-    ]);
-
-    return NextResponse.json({ message: "Product deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting product:", error);
-    return NextResponse.json(
-      { error: "Failed to delete product" },
       { status: 500 }
     );
   }

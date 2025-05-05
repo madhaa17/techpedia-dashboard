@@ -1,13 +1,14 @@
 import { authAdminOnly } from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: Request | NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  const { id } = await params;
   try {
-    if (!params?.id) {
+    if (!id) {
       return NextResponse.json(
         { error: "Product ID is required" },
         { status: 400 }
@@ -15,7 +16,7 @@ export async function GET(
     }
 
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         brand: true,
         category: true,
@@ -51,8 +52,10 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  const { id } = await params;
+
   try {
     // Check admin authorization
     const isAdmin = await authAdminOnly(req);
@@ -63,7 +66,7 @@ export async function PUT(
       );
     }
 
-    if (!params?.id) {
+    if (!id) {
       return NextResponse.json(
         { error: "Product ID is required" },
         { status: 400 }
@@ -72,7 +75,7 @@ export async function PUT(
 
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!existingProduct) {
@@ -131,7 +134,7 @@ export async function PUT(
     }
 
     const updatedProduct = await prisma.product.update({
-      where: { id: params.id },
+      where: { id: id },
       data: body,
       include: {
         brand: true,
@@ -144,6 +147,72 @@ export async function PUT(
     console.error("Error updating product:", error);
     return NextResponse.json(
       { error: "Failed to update product" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+  const { id } = await params;
+  try {
+    // Check admin authorization
+    const isAdmin = await authAdminOnly(req);
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: "Unauthorized - Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Product ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if product exists
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: id },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    // Check if product has related records
+    const hasOrderItems = await prisma.orderItem.findFirst({
+      where: { productId: id },
+    });
+
+    if (hasOrderItems) {
+      return NextResponse.json(
+        { error: "Cannot delete product with existing orders" },
+        { status: 400 }
+      );
+    }
+
+    // First delete related reviews and cart items
+    await prisma.$transaction([
+      prisma.productReview.deleteMany({
+        where: { productId: id },
+      }),
+      prisma.cartItem.deleteMany({
+        where: { productId: id },
+      }),
+      prisma.product.delete({
+        where: { id: id },
+      }),
+    ]);
+
+    return NextResponse.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return NextResponse.json(
+      { error: "Failed to delete product" },
       { status: 500 }
     );
   }
