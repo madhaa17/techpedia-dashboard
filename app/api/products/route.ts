@@ -33,8 +33,14 @@ export async function GET(req: Request): Promise<NextResponse> {
       orderBy: { createdAt: "desc" },
     });
 
+    const mappedProducts = products.map((product) => ({
+      ...product,
+      brand: product.brand ? { ...product.brand } : null,
+      category: product.category || null,
+    }));
+
     const response: ProductsResponse = {
-      data: products,
+      data: mappedProducts,
       meta: {
         total,
         page,

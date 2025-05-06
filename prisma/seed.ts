@@ -96,16 +96,16 @@ async function seedCustomers(count: number) {
 
 async function seedBrands() {
   const brandNames = [
-    "TechPro",
-    "Luxify",
-    "EcoGoods",
-    "SportMaster",
-    "HomeEssentials",
-    "FashionPlus",
-    "GadgetHub",
-    "OrganicLife",
-    "ArtisanCraft",
-    "PetLover",
+    "Apple",
+    "Samsung",
+    "Google",
+    "Microsoft",
+    "Huawei",
+    "MSI",
+    "Lenovo",
+    "Xiaomi",
+    "Asus",
+    "Logitech",
   ];
 
   const brands = [];
@@ -122,16 +122,15 @@ async function seedBrands() {
 
 async function seedCategories() {
   const categoryNames = [
-    "Electronics",
-    "Fashion",
-    "Home & Kitchen",
-    "Sports & Outdoors",
-    "Beauty & Personal Care",
-    "Books",
-    "Toys & Games",
-    "Health & Wellness",
-    "Automotive",
-    "Pet Supplies",
+    "Laptops & Computer",
+    "Handphone & Tablet",
+    "Monitor",
+    "Smartwatch",
+    "Camera",
+    "Gaming",
+    "TWS Earbuds",
+    "Keyboard",
+    "Mouse",
   ];
 
   const categories = [];
@@ -158,7 +157,7 @@ async function seedProducts(brands: any[], categories: any[], count: number) {
       data: {
         name: faker.commerce.productName(),
         description: faker.commerce.productDescription(),
-        price: parseFloat(faker.commerce.price({ min: 10, max: 1000 })),
+        price: parseFloat(faker.commerce.price({ min: 500000, max: 30000000 })),
         stock: faker.number.int({ min: 0, max: 100 }),
         imageUrl: `https://picsum.photos/seed/${faker.string.uuid()}/500/500`,
         brandId: randomBrand.id,

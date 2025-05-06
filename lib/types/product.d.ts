@@ -18,11 +18,17 @@ interface ProductUpdateInput {
   categoryId?: string;
 }
 
-interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  imageUrl: string;
+  brandId: string;
+  categoryId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface ProductsResponse {

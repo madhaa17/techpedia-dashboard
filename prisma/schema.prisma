@@ -35,6 +35,7 @@ model Address {
   postalCode    String
   isDefault     Boolean  @default(false)
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Product {
@@ -60,12 +61,16 @@ model Brand {
   id       String    @id @default(uuid())
   name     String    @unique
   products Product[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Category {
   id       String    @id @default(uuid())
   name     String    @unique
   products Product[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model ProductReview {
