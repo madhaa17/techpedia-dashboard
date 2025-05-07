@@ -1,4 +1,8 @@
-import { authAdminOnly } from "@/lib/middleware";
+import {
+  authAdminOnly,
+  getCurrentUser,
+  unauthorizedResponse,
+} from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -57,7 +61,13 @@ export async function PUT(
   const { id } = await params;
 
   try {
-    // Check admin authorization
+    // check token exists
+    const currentUser = await getCurrentUser(req);
+    if (!currentUser) {
+      return unauthorizedResponse();
+    }
+
+    // Verify that request is from an admin
     const isAdmin = await authAdminOnly(req);
     if (!isAdmin) {
       return NextResponse.json(
@@ -158,7 +168,13 @@ export async function DELETE(
 ): Promise<NextResponse> {
   const { id } = await params;
   try {
-    // Check admin authorization
+    // check token exists
+    const currentUser = await getCurrentUser(req);
+    if (!currentUser) {
+      return unauthorizedResponse();
+    }
+
+    // Verify that request is from an admin
     const isAdmin = await authAdminOnly(req);
     if (!isAdmin) {
       return NextResponse.json(

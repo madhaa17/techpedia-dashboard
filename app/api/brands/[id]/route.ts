@@ -7,13 +7,23 @@ export async function GET(
   req: Request | NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const { id } = await params;
   try {
-    if (!id) {
+    const { id } = await params;
+
+    if (id === "") {
       return NextResponse.json(
         { error: "Brand ID is required" },
         { status: 400 }
       );
+    }
+
+    // Check if product exists
+    const existingBrand = await prisma.brand.findUnique({
+      where: { id: id },
+    });
+
+    if (!existingBrand) {
+      return NextResponse.json({ error: "brand not found" }, { status: 404 });
     }
 
     const brand = await prisma.brand.findUnique({
