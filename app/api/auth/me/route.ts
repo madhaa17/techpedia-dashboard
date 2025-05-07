@@ -23,18 +23,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         role: true,
         createdAt: true,
         updatedAt: true,
-        // Include addresses for all users
-        addresses: {
-          select: {
-            id: true,
-            recipientName: true,
-            phoneNumber: true,
-            addressLine: true,
-            city: true,
-            postalCode: true,
-            isDefault: true,
-          },
-        },
+
         // Include additional data for customer role
         ...(user.role === "CUSTOMER" && {
           orders: {
@@ -84,7 +73,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(userData);
+    return NextResponse.json({ data: userData, success: true });
   } catch (error) {
     console.error("Error fetching user data:", error);
     return NextResponse.json(

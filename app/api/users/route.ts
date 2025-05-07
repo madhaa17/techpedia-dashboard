@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authAdminOnly } from "@/lib/middleware";
+import {
+  authAdminOnly,
+  getCurrentUser,
+  unauthorizedResponse,
+} from "@/lib/middleware";
 
 // Get All User (Admin Only)
 export async function GET(req: Request | NextRequest): Promise<NextResponse> {
   try {
+    // check token exists
+    const currentUser = await getCurrentUser(req);
+    if (!currentUser) {
+      return unauthorizedResponse();
+    }
+
+    // Verify that request is from an admin
     const isAdmin = await authAdminOnly(req);
     if (!isAdmin) {
       return NextResponse.json(
@@ -35,7 +46,6 @@ export async function GET(req: Request | NextRequest): Promise<NextResponse> {
     }
 
     const total = await prisma.user.count({ where });
-
     const skip = (page - 1) * limit;
     const totalPages = Math.ceil(total / limit);
 
@@ -55,6 +65,8 @@ export async function GET(req: Request | NextRequest): Promise<NextResponse> {
     });
 
     const response: UserResponse = {
+      success: true,
+      status: 200,
       data: users,
       meta: {
         total,
@@ -64,7 +76,7 @@ export async function GET(req: Request | NextRequest): Promise<NextResponse> {
       },
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(

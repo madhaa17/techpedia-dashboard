@@ -3,7 +3,12 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-export async function POST(req: Request): Promise<NextResponse> {
+type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export async function POST(req: Request) {
   try {
     const body = (await req.json()) as LoginRequest;
 
@@ -18,43 +23,47 @@ export async function POST(req: Request): Promise<NextResponse> {
       where: { email: body.email },
     });
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(body.password, user.password))) {
       return NextResponse.json(
         { error: "Invalid email or password" },
-        { status: 404 }
+        { status: 401 }
       );
     }
 
-    const isPassMatch = await bcrypt.compare(body.password, user.password);
-
-    if (!isPassMatch) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 404 }
-      );
-    }
-
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      },
+    // Create access token (15 mins)
+    const accessToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: "1d" }
+      { expiresIn: "15m" }
     );
 
-    const response: LoginResponse = {
+    // Create refresh token (7 days)
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_REFRESH_SECRET!,
+      { expiresIn: "7d" }
+    );
+
+    // Save refresh token in cookie
+    const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
       },
-      token,
-    };
+      accessToken,
+    });
 
-    return NextResponse.json(response);
+    response.cookies.set("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error(error);
     return NextResponse.json(

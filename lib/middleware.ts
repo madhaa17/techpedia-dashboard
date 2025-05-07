@@ -1,7 +1,16 @@
+// lib/auth-middleware.ts
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
+
+// Define JWT payload interface
+interface JwtPayload {
+  userId: string;
+  email: string;
+  iat: number;
+  exp: number;
+}
 
 /**
  * Authentication middleware to verify JWT token
@@ -10,7 +19,6 @@ import { Role } from "@prisma/client";
  */
 export async function auth(req: Request) {
   try {
-    // Get token from Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return null;
@@ -18,13 +26,16 @@ export async function auth(req: Request) {
 
     const token = authHeader.split(" ")[1];
 
-    // Verify JWT token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your-fallback-secret-key"
-    ) as JwtPayload;
+    const invalidToken = await prisma.invalidToken.findUnique({
+      where: { token },
+    });
 
-    // Check if user exists in database
+    if (invalidToken) {
+      return null;
+    }
+
+    const decoded = jwt?.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
     });

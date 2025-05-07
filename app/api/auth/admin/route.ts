@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { authAdminOnly } from "@/lib/middleware";
+import {
+  authAdminOnly,
+  getCurrentUser,
+  unauthorizedResponse,
+} from "@/lib/middleware";
 import { Role } from "@prisma/client";
+import { stat } from "fs";
 
 export async function POST(req: Request | NextRequest): Promise<NextResponse> {
   try {
+    // check token exists
+    const currentUser = await getCurrentUser(req);
+    if (!currentUser) {
+      return unauthorizedResponse();
+    }
+
     // Verify that request is from an admin
     const isAdmin = await authAdminOnly(req);
     if (!isAdmin) {
@@ -76,7 +87,7 @@ export async function POST(req: Request | NextRequest): Promise<NextResponse> {
       createdAt: newAdmin.createdAt,
     };
 
-    return NextResponse.json(response, { status: 201 });
+    return NextResponse.json({ data: response, success: true, status: 201 });
   } catch (error) {
     console.error("Admin creation error:", error);
     return NextResponse.json(
@@ -89,6 +100,12 @@ export async function POST(req: Request | NextRequest): Promise<NextResponse> {
 // Get all admins (admin only)
 export async function GET(req: Request | NextRequest): Promise<NextResponse> {
   try {
+    // check token exists
+    const currentUser = await getCurrentUser(req);
+    if (!currentUser) {
+      return unauthorizedResponse();
+    }
+
     // Verify that request is from an admin
     const isAdmin = await authAdminOnly(req);
     if (!isAdmin) {
@@ -112,7 +129,7 @@ export async function GET(req: Request | NextRequest): Promise<NextResponse> {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(admins);
+    return NextResponse.json({ data: admins, success: true, status: 200 });
   } catch (error) {
     console.error("Error fetching admins:", error);
     return NextResponse.json(

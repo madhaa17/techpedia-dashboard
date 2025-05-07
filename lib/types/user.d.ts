@@ -10,4 +10,6 @@ interface UserItem {
 interface UserResponse {
   data: User[];
   meta: PaginationMeta;
+  status: number;
+  success: boolean;
 }
