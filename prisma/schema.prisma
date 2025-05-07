@@ -24,6 +24,17 @@ model User {
   CartItem CartItem[]
 }
 
+model InvalidToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
 model Address {
   id            String   @id @default(uuid())
   user          User     @relation(fields: [userId], references: [id])
