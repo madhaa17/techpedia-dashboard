@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authAdminOnly } from "@/lib/middleware";
+import cloudinary from "@/lib/cloudinary";
 
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -70,21 +71,28 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
 
-    const body = (await req.json()) as ProductCreateInput;
+    const formData = await req.formData();
+
+    // Extract all fields from form data
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const price = parseFloat(formData.get("price") as string);
+    const stock = parseInt(formData.get("stock") as string);
+    const brandId = formData.get("brandId") as string;
+    const categoryId = formData.get("categoryId") as string;
+    const imageFile = formData.get("imageFile") as File | null;
 
     // Validate required fields
-    const requiredFields: (keyof ProductCreateInput)[] = [
+    const requiredFields = [
       "name",
       "description",
       "price",
       "stock",
-      "imageUrl",
       "brandId",
       "categoryId",
     ];
-
     const missingFields = requiredFields.filter(
-      (field) => body[field] === undefined
+      (field) => !formData.get(field)
     );
 
     if (missingFields.length > 0) {
@@ -95,18 +103,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     // Validate data types
-    if (typeof body.price !== "number" || body.price <= 0) {
+    if (isNaN(price) || price <= 0) {
       return NextResponse.json(
         { error: "Price must be a positive number" },
         { status: 400 }
       );
     }
 
-    if (
-      typeof body.stock !== "number" ||
-      body.stock < 0 ||
-      !Number.isInteger(body.stock)
-    ) {
+    if (isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
       return NextResponse.json(
         { error: "Stock must be a non-negative integer" },
         { status: 400 }
@@ -114,16 +118,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     // Check if brand and category exist
-    const brand = await prisma.brand.findUnique({
-      where: { id: body.brandId },
-    });
+    const [brand, category] = await Promise.all([
+      prisma.brand.findUnique({ where: { id: brandId } }),
+      prisma.category.findUnique({ where: { id: categoryId } }),
+    ]);
+
     if (!brand) {
       return NextResponse.json({ error: "Invalid brand ID" }, { status: 400 });
     }
-
-    const category = await prisma.category.findUnique({
-      where: { id: body.categoryId },
-    });
     if (!category) {
       return NextResponse.json(
         { error: "Invalid category ID" },
@@ -131,15 +133,47 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
 
+    let imageUrl = "";
+
+    // Handle image upload if provided
+    if (imageFile) {
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Convert to base64 for Cloudinary upload
+      const base64Image = `data:${imageFile.type};base64,${buffer.toString(
+        "base64"
+      )}`;
+
+      try {
+        const uploadResult = await cloudinary.uploader.upload(base64Image, {
+          folder: "products",
+        });
+        imageUrl = uploadResult.secure_url;
+      } catch (error) {
+        console.error("Cloudinary upload error:", error);
+        return NextResponse.json(
+          { error: "Failed to upload image" },
+          { status: 500 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { error: "Product image is required" },
+        { status: 400 }
+      );
+    }
+
+    // Create the product
     const product = await prisma.product.create({
       data: {
-        name: body.name,
-        description: body.description,
-        price: body.price,
-        stock: body.stock,
-        imageUrl: body.imageUrl,
-        brandId: body.brandId,
-        categoryId: body.categoryId,
+        name,
+        description,
+        price,
+        stock,
+        imageUrl,
+        brandId,
+        categoryId,
       },
       include: {
         brand: true,

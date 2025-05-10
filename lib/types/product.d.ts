@@ -3,7 +3,8 @@ interface ProductCreateInput {
   description: string;
   price: number;
   stock: number;
-  imageUrl: string;
+  imageFile?: string; // Base64 encoded image or URL
+  imageUrl?: string; // Existing Cloudinary URL
   brandId: string;
   categoryId: string;
 }
@@ -13,6 +14,7 @@ interface ProductUpdateInput {
   description?: string;
   price?: number;
   stock?: number;
+  imageFile?: string;
   imageUrl?: string;
   brandId?: string;
   categoryId?: string;
