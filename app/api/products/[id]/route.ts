@@ -58,9 +58,9 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     // Check authentication and admin status
@@ -248,9 +248,9 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     // Check authentication and admin status
