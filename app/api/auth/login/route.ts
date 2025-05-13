@@ -19,33 +19,39 @@ export async function POST(req: Request) {
       );
     }
 
+    // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: body.email },
     });
 
-    if (!user || !(await bcrypt.compare(body.password, user.password))) {
+    if (!user) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    // Create access token (15 mins)
+    // Verify password
+    const passwordValid = await bcrypt.compare(body.password, user.password);
+    if (!passwordValid) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
+
     const accessToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      },
       process.env.JWT_SECRET!,
-      { expiresIn: "15m" }
+      { expiresIn: "1d" }
     );
 
-    // Create refresh token (7 days)
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: "7d" }
-    );
-
-    // Save refresh token in cookie
-    const response = NextResponse.json({
+    // Return user data and token
+    return NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
@@ -54,18 +60,8 @@ export async function POST(req: Request) {
       },
       accessToken,
     });
-
-    response.cookies.set("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
-    });
-
-    return response;
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

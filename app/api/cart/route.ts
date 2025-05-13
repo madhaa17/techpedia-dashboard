@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        items: cartItems,
+        data: cartItems,
         totalPrice: Number(totalPrice.toFixed(2)), // rounded to 2 decimal places
         itemCount: cartItems.length,
       },
